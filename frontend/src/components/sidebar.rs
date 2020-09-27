@@ -8,6 +8,7 @@ use yewtil::{ptr::Irc, NeqAssign};
 pub struct Props {
     pub accounts: Irc<HashMap<String, SharedAccountState>>,
     pub selected_account: Irc<Option<String>>,
+    pub select_account_callback: Callback<String>,
 }
 
 pub struct Sidebar {
@@ -34,17 +35,20 @@ impl Component for Sidebar {
     fn view(&self) -> Html {
         html! {
             <div class="sidebar">
-              <div class="account-list">
-                { self.props.accounts.iter().map(|(_, acc)| {
-                    html! {
-                        <div class="account">
-                            <div class="letter-icon">
-                        {acc.email.chars().next().unwrap()}
-                        </div>
+                <div class="account-list">
+                    { self.props.accounts.iter().map(|(_, acc)| {
+                        let account = acc.email.clone();
+                        let cb = self.props.select_account_callback.clone();
+                        let onclick: Callback<_> = (move |_| cb.emit((account.to_string()))).into();
+                        html! {
+                            <div class="account" onclick=onclick>
+                                <div class="letter-icon" >
+                                    {acc.email.chars().next().unwrap()}
+                                </div>
                             </div>
-                    }
-                }).collect::<Html>() }
-              </div>
+                        }
+                    }).collect::<Html>() }
+                </div>
             </div>
         }
     }

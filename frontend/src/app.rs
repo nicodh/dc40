@@ -102,31 +102,39 @@ impl App {
                   chats_range=self.model.chats_range.irc()
                   chats_len=self.model.chats_len.irc()
                   fetch_callback=chats_fetch_callback />
-                <div class="chat">
+                  <div class="chat">
                   <div class="chat-header"> {
                     if let Some(chat) = &*self.model.selected_chat {
                         let (title, subtitle) = get_titles(&chat);
                         html! {
                             <div>
-                              <div class="chat-header-name">{title}</div>
-                              <div class="chat-header-subtitle">
-                                { subtitle }
-                              </div>
+                                <div class="chat-header-name">{title}</div>
+                                <div class="chat-header-subtitle">
+                                  { subtitle }
+                                </div>
                             </div>
                         }
                     } else {
-                        html! {}
+                        html! {
+                            <div class="chat-header-name">
+                                { "Please select a chat" }
+                            </div>
+                        }
                     }
                   }
                   </div>
-
                   <Messages
-                   messages=self.model.messages.irc()
-                   messages_len=Irc::new(self.model.message_items.len())
-                   messages_range=self.model.messages_range.irc()
-                   selected_chat_id=self.model.selected_chat_id.irc()
-                   fetch_callback=messages_fetch_callback />
-                  <MessageInput send_callback=onsend />
+                    messages=self.model.messages.irc()
+                    messages_len=Irc::new(self.model.message_items.len())
+                    messages_range=self.model.messages_range.irc()
+                    selected_chat_id=self.model.selected_chat_id.irc()
+                    fetch_callback=messages_fetch_callback /> {
+                      if let Some(chat) = &*self.model.selected_chat {
+                          html! { <MessageInput send_callback=onsend /> }
+                      } else {
+                          html! {}
+                      }
+                    }
                 </div>
            </>
         }
@@ -208,16 +216,17 @@ impl Component for App {
                     }
                     Response::Account { account } => {
                       self.model.selected_account.neq_assign(Some(account));
+                      // Reset local state - tbd: should happen in backend...?
+                      self.model.selected_chat.neq_assign(None);
+                      self.model.selected_chat_id.neq_assign(None);
+                      self.model.selected_chat_length.neq_assign(0);
 
-                      let message = Msg::WsRequest(Request::LoadChatList {
-                          start_index: 0,
-                          stop_index: 10,
-                      });
-                      self.link.send_message(message);
+                      self.model.messages_range.neq_assign((0, 0));
+                      self.model.message_items.neq_assign(Vec::new());
+                      self.model.messages.neq_assign(Vec::new());
                       return true;
                     }
                     Response::RemoteUpdate { state } => {
-                        info!("RemoteUpdate {:?}", state);
                         self.model.accounts.neq_assign(state.shared.accounts);
                         self.model.errors.neq_assign(state.shared.errors);
                         self.model

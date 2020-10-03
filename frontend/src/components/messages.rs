@@ -6,6 +6,8 @@ use yewtil::{ptr::Irc, NeqAssign};
 use crate::components::list::List;
 use crate::components::message::Message;
 
+use log::{info};
+
 #[derive(Properties, Clone, PartialEq)]
 pub struct Props {
     pub messages: Irc<Vec<ChatMessage>>,
@@ -29,6 +31,7 @@ impl Component for Messages {
     }
 
     fn update(&mut self, _msg: Self::Message) -> ShouldRender {
+        info!("Update Message list{:?}", _msg);
         true
     }
 
@@ -41,18 +44,21 @@ impl Component for Messages {
             Rc::new(move |msg: ChatMessage| -> Html {
                 html! { <Message message=msg /> }
             });
-
-        html! {
-            <List<ChatMessage>
-               class="message-list".to_string()
-               list=self.props.messages.clone()
-               list_range = self.props.messages_range.clone()
-               list_len=self.props.messages_len.clone()
-               selected_id=self.props.selected_chat_id.clone()
-               fetch_callback=self.props.fetch_callback.clone()
-               render_element=render_element
-               auto_scroll=true
-               batch_size=30 />
+        if self.props.messages_len.clone().unwrap_clone() > 0 {
+            html! {
+              <List<ChatMessage>
+                class="message-list".to_string()
+                list=self.props.messages.clone()
+                list_range = self.props.messages_range.clone()
+                list_len=self.props.messages_len.clone()
+                selected_id=self.props.selected_chat_id.clone()
+                fetch_callback=self.props.fetch_callback.clone()
+                render_element=render_element
+                auto_scroll=true
+                batch_size=30 />
+            }
+        } else {
+            html! {}
         }
     }
 }

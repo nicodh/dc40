@@ -266,10 +266,25 @@ async fn accept_connection(stream: TcpStream, local_state: Arc<RwLock<LocalState
                     }
                 }
                 Request::SelectAccount { account } => {
-                    info!("selecting account {}", account);
                     let mut ls = local_state.write().await;
                     ls.selected_account = Some(account.clone());
                     ls.send(write.clone(), Response::Account { account: account.to_string() }, ).await?;
+                    // TODO: refactor this duplicate of LoadChatList handler
+                    if let Some(selected_account) = ls.accounts.get(&account) {
+                        match selected_account.load_chat_list(0, 10).await {
+                            Ok((range, len, chats)) => {
+                                ls.send(write.clone(), Response::ChatList { range, len, chats })
+                                .await?;
+                            },
+                            Err(err) => {
+                                info!("Could not load chat list: {}", err);
+                                // send an empty chat list to be handled by frontend
+                                let chats = Vec::with_capacity(0);
+                                ls.send(write.clone(), Response::ChatList { range: (0, 0), len: 0, chats: chats })
+                                .await?;
+                            }
+                        }
+                    }
                 }
                 Request::SendTextMessage { text } => {
                     let ls = local_state.read().await;
